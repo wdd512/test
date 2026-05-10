@@ -116,19 +116,33 @@ def watch_intrabar(
         if write_header:
             writer.writeheader()
         while time.time() <= deadline:
-            candles = market_data.klines(symbol, interval, 260)
-            signal = dynamic_candle_signal(
-                candles,
-                model_path=model_path,
-                symbol=symbol,
-                interval=interval,
-                threshold=threshold,
-                flip_threshold=flip_threshold,
-            )
-            signals.append(signal)
-            writer.writerow(_flatten_signal(signal))
-            file.flush()
-            print(json.dumps(asdict(signal), ensure_ascii=False), flush=True)
+            try:
+                candles = market_data.klines(symbol, interval, 260)
+                signal = dynamic_candle_signal(
+                    candles,
+                    model_path=model_path,
+                    symbol=symbol,
+                    interval=interval,
+                    threshold=threshold,
+                    flip_threshold=flip_threshold,
+                )
+                signals.append(signal)
+                writer.writerow(_flatten_signal(signal))
+                file.flush()
+                print(json.dumps(asdict(signal), ensure_ascii=False), flush=True)
+            except Exception as exc:
+                print(
+                    json.dumps(
+                        {
+                            "level": "error",
+                            "message": "intrabar poll failed",
+                            "error_type": type(exc).__name__,
+                            "error": str(exc),
+                        },
+                        ensure_ascii=False,
+                    ),
+                    flush=True,
+                )
             time.sleep(poll_seconds)
     return signals
 

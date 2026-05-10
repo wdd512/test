@@ -46,6 +46,19 @@ POLL_SECONDS=20
 INTRABAR_OUT=intrabar_signals.csv
 THRESHOLD=0.52
 FLIP_THRESHOLD=0.535
+MARKET_DATA_PROVIDER=coinbase
+SYMBOL=BTC-USD
+INTERVAL=5m
+```
+
+Railway US West може отримувати `HTTP 451` від `https://api.binance.com`.
+Тому Docker deployment за замовчуванням використовує Coinbase `BTC-USD`.
+Якщо зміните Railway region на європейський і хочете повернути Binance, задайте:
+
+```text
+MARKET_DATA_PROVIDER=binance
+SYMBOL=BTCUSDT
+BINANCE_BASE_URL=https://api.binance.com
 ```
 
 ## Після збору

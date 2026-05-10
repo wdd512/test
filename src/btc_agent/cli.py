@@ -7,7 +7,7 @@ from dataclasses import asdict
 from .agent import BTCAgent
 from .backtest import optimize_thresholds, walk_forward_backtest
 from .config import AgentConfig
-from .data import BinanceMarketData, load_candles_csv, save_candles_csv
+from .data import BinanceMarketData, create_market_data, load_candles_csv, save_candles_csv
 from .intrabar import dynamic_candle_signal, watch_intrabar
 from .intrabar_training import label_intrabar_csv, train_intrabar_model
 from .ml_baseline import (
@@ -164,7 +164,7 @@ def main() -> None:
         decision = BTCAgent(config).analyze_live()
         print(json.dumps(decision.as_dict(), ensure_ascii=False, indent=2))
     elif args.command == "fetch":
-        data = BinanceMarketData()
+        data = create_market_data()
         if args.history:
             candles = data.historical_klines(args.symbol, args.interval, args.limit)
         else:
@@ -281,7 +281,7 @@ def main() -> None:
         )
         print(json.dumps(asdict(report), ensure_ascii=False, indent=2))
     elif args.command == "candle-direction-live":
-        data = BinanceMarketData()
+        data = create_market_data()
         candles = data.klines(args.symbol, args.interval, 260)
         signal = predict_candle_direction_live(
             candles,
@@ -292,7 +292,7 @@ def main() -> None:
         )
         print(json.dumps(asdict(signal), ensure_ascii=False, indent=2))
     elif args.command == "intrabar-live":
-        data = BinanceMarketData()
+        data = create_market_data()
         candles = data.klines(args.symbol, args.interval, 260)
         signal = dynamic_candle_signal(
             candles,
@@ -304,7 +304,7 @@ def main() -> None:
         )
         print(json.dumps(asdict(signal), ensure_ascii=False, indent=2))
     elif args.command == "intrabar-watch":
-        data = BinanceMarketData()
+        data = create_market_data()
         watch_intrabar(
             data,
             symbol=args.symbol,

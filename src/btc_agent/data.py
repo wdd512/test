@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -9,6 +10,7 @@ from pathlib import Path
 from typing import Iterable
 
 from .models import Candle, OrderBookSnapshot
+from .config import INTERVAL_SECONDS
 
 
 def _utc_ms(ms: int) -> datetime:
@@ -22,8 +24,8 @@ def _http_json(url: str, timeout: float = 10.0) -> object:
 
 
 class BinanceMarketData:
-    def __init__(self, base_url: str = "https://api.binance.com") -> None:
-        self.base_url = base_url.rstrip("/")
+    def __init__(self, base_url: str | None = None) -> None:
+        self.base_url = (base_url or os.getenv("BINANCE_BASE_URL") or "https://api.binance.com").rstrip("/")
 
     def klines(self, symbol: str, interval: str, limit: int = 240) -> list[Candle]:
         params = urllib.parse.urlencode({"symbol": symbol, "interval": interval, "limit": limit})
@@ -94,6 +96,53 @@ class BinanceMarketData:
             taker_buy_base_volume=float(row[9]),
             taker_buy_quote_volume=float(row[10]),
         )
+
+
+class CoinbaseMarketData:
+    def __init__(self, base_url: str | None = None) -> None:
+        self.base_url = (base_url or os.getenv("COINBASE_BASE_URL") or "https://api.exchange.coinbase.com").rstrip("/")
+
+    def klines(self, symbol: str, interval: str, limit: int = 240) -> list[Candle]:
+        granularity = INTERVAL_SECONDS[interval]
+        encoded_symbol = urllib.parse.quote(symbol, safe="")
+        params = urllib.parse.urlencode({"granularity": granularity})
+        rows = _http_json(f"{self.base_url}/products/{encoded_symbol}/candles?{params}")
+        parsed = [self._parse_candle(row, granularity) for row in rows]  # type: ignore[arg-type]
+        parsed.sort(key=lambda candle: candle.open_time)
+        return parsed[-limit:]
+
+    def historical_klines(self, symbol: str, interval: str, limit: int = 300) -> list[Candle]:
+        return self.klines(symbol, interval, min(limit, 300))
+
+    @staticmethod
+    def _parse_candle(row: list, granularity: int) -> Candle:
+        # Coinbase format: [time, low, high, open, close, volume]
+        open_time = datetime.fromtimestamp(int(row[0]), tz=timezone.utc)
+        close_time = datetime.fromtimestamp(int(row[0]) + granularity, tz=timezone.utc)
+        volume = float(row[5])
+        close = float(row[4])
+        return Candle(
+            open_time=open_time,
+            open=float(row[3]),
+            high=float(row[2]),
+            low=float(row[1]),
+            close=close,
+            volume=volume,
+            close_time=close_time,
+            quote_volume=volume * close,
+            trade_count=0,
+            taker_buy_base_volume=volume / 2,
+            taker_buy_quote_volume=volume * close / 2,
+        )
+
+
+def create_market_data():
+    provider = os.getenv("MARKET_DATA_PROVIDER", "binance").lower()
+    if provider == "coinbase":
+        return CoinbaseMarketData()
+    if provider == "binance":
+        return BinanceMarketData()
+    raise ValueError(f"Unsupported MARKET_DATA_PROVIDER: {provider}")
 
 
 def load_candles_csv(path: str | Path) -> list[Candle]:
