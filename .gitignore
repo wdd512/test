@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+test/
+data_*.csv
+intrabar_*.csv
+*.log

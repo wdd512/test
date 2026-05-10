@@ -1,0 +1,15 @@
+[project]
+name = "btc-agent"
+version = "0.1.0"
+description = "MVP AI-style agent for short-horizon BTC analysis on 5m/15m charts."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+btc-agent = "btc_agent.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

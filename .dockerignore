@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.git/
+.venv/
+venv/
+data_btc_5m.csv
+data_btc_5m_10000.csv
+btc_baseline_model.json
+btc_baseline_model_10000.json
+intrabar_labeled.csv
+*.log

@@ -1,0 +1,8 @@
+# The MVP runs on Python standard library only.
+# Optional future upgrades:
+# pandas
+# numpy
+# scikit-learn
+# xgboost
+# catboost
+# torch
