@@ -3,6 +3,9 @@ __pycache__/
 .git/
 .venv/
 venv/
+Poly/node_modules/
+Poly/state/
+Poly/logs/
 data_btc_5m.csv
 data_btc_5m_10000.csv
 btc_baseline_model.json

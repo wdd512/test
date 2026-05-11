@@ -341,8 +341,12 @@ def train_candle_direction(
     train_fraction: float = 0.70,
     cost: float = 0.0,
     output_model: str | None = None,
+    sample_step: int = 1,
+    epochs: int = 900,
 ) -> TrainingReport:
     dataset = build_candle_direction_dataset(candles, lookback=lookback, cost=cost)
+    if sample_step > 1:
+        dataset = dataset[::sample_step]
     return _train_dataset_report(
         dataset,
         lookback=lookback,
@@ -351,6 +355,7 @@ def train_candle_direction(
         cost=cost,
         output_model=output_model,
         label_type="candle_direction",
+        epochs=epochs,
     )
 
 
@@ -362,6 +367,7 @@ def _train_dataset_report(
     cost: float,
     output_model: str | None,
     label_type: str,
+    epochs: int = 900,
 ) -> TrainingReport:
     if len(dataset) < 100:
         raise ValueError("Need at least 100 supervised rows. Fetch more candles first.")
@@ -377,7 +383,7 @@ def _train_dataset_report(
     x_test = [scaler.transform(row.features) for row in test_rows]
     y_test = [row.target for row in test_rows]
 
-    model = LogisticRegression()
+    model = LogisticRegression(epochs=epochs)
     model.fit(x_train, y_train)
 
     train_probs = model.predict_proba(x_train)

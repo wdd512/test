@@ -8,8 +8,10 @@ from .agent import BTCAgent
 from .backtest import optimize_thresholds, walk_forward_backtest
 from .config import AgentConfig
 from .data import BinanceMarketData, create_market_data, load_candles_csv, save_candles_csv
+from .history_download import download_binance_public_monthly_klines
 from .intrabar import dynamic_candle_signal, watch_intrabar
 from .intrabar_training import label_intrabar_csv, train_intrabar_model
+from .log_import import import_railway_logs
 from .ml_baseline import (
     predict_candle_direction_live,
     run_experiment_matrix,
@@ -19,6 +21,7 @@ from .ml_baseline import (
     walk_forward_evaluate,
     walk_forward_regime_evaluate,
 )
+from .paper_trading import paper_trade_intrabar
 
 
 def main() -> None:
@@ -70,6 +73,8 @@ def main() -> None:
     candle_train.add_argument("--train-fraction", type=float, default=0.70)
     candle_train.add_argument("--cost", type=float, default=0.0)
     candle_train.add_argument("--out-model", default="btc_candle_direction_model.json")
+    candle_train.add_argument("--sample-step", type=int, default=1)
+    candle_train.add_argument("--epochs", type=int, default=900)
 
     matrix = subparsers.add_parser("experiment-matrix", help="Run horizon/cost experiments for the ML baseline")
     matrix.add_argument("--csv", required=True)
@@ -157,6 +162,31 @@ def main() -> None:
     intrabar_train.add_argument("--out-model", default="btc_intrabar_model.json")
     intrabar_train.add_argument("--train-fraction", type=float, default=0.70)
 
+    paper = subparsers.add_parser("paper-trade", help="Run virtual-money intrabar paper trading")
+    paper.add_argument("--symbol", default="BTC-USD")
+    paper.add_argument("--interval", default="5m")
+    paper.add_argument("--base-model", default="btc_candle_direction_model.json")
+    paper.add_argument("--intrabar-model", default="btc_intrabar_model.json")
+    paper.add_argument("--seconds", type=int, default=3600)
+    paper.add_argument("--poll-seconds", type=int, default=20)
+    paper.add_argument("--balance", type=float, default=100.0)
+    paper.add_argument("--stake-fraction", type=float, default=0.20)
+    paper.add_argument("--threshold", type=float, default=0.52)
+    paper.add_argument("--flip-threshold", type=float, default=0.535)
+    paper.add_argument("--out", default="paper_trades.csv")
+
+    import_logs = subparsers.add_parser("import-railway-logs", help="Convert downloaded Railway logs to intrabar CSV")
+    import_logs.add_argument("--input", required=True)
+    import_logs.add_argument("--output", default="intrabar_signals.csv")
+
+    hist = subparsers.add_parser("download-binance-history", help="Download Binance public monthly kline ZIPs")
+    hist.add_argument("--symbol", default="BTCUSDT")
+    hist.add_argument("--interval", default="5m")
+    hist.add_argument("--start-month", required=True)
+    hist.add_argument("--end-month", required=True)
+    hist.add_argument("--out", required=True)
+    hist.add_argument("--base-url", default="https://data.binance.vision/data/spot/monthly/klines")
+
     args = parser.parse_args()
 
     if args.command == "analyze":
@@ -227,6 +257,8 @@ def main() -> None:
             train_fraction=args.train_fraction,
             cost=args.cost,
             output_model=args.out_model,
+            sample_step=args.sample_step,
+            epochs=args.epochs,
         )
         print(json.dumps(asdict(report), ensure_ascii=False, indent=2))
     elif args.command == "experiment-matrix":
@@ -322,6 +354,35 @@ def main() -> None:
     elif args.command == "train-intrabar":
         report = train_intrabar_model(args.csv, output_model=args.out_model, train_fraction=args.train_fraction)
         print(json.dumps(asdict(report), ensure_ascii=False, indent=2))
+    elif args.command == "import-railway-logs":
+        report = import_railway_logs(args.input, args.output)
+        print(json.dumps(asdict(report), ensure_ascii=False, indent=2))
+    elif args.command == "download-binance-history":
+        report = download_binance_public_monthly_klines(
+            symbol=args.symbol,
+            interval=args.interval,
+            start_month=args.start_month,
+            end_month=args.end_month,
+            output_csv=args.out,
+            base_url=args.base_url,
+        )
+        print(json.dumps(asdict(report), ensure_ascii=False, indent=2))
+    elif args.command == "paper-trade":
+        data = create_market_data()
+        paper_trade_intrabar(
+            data,
+            symbol=args.symbol,
+            interval=args.interval,
+            base_model_path=args.base_model,
+            intrabar_model_path=args.intrabar_model,
+            seconds=args.seconds,
+            poll_seconds=args.poll_seconds,
+            starting_balance=args.balance,
+            stake_fraction=args.stake_fraction,
+            threshold=args.threshold,
+            flip_threshold=args.flip_threshold,
+            out_csv=args.out,
+        )
 
 
 if __name__ == "__main__":

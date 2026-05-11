@@ -99,6 +99,11 @@ intrabar_live.bat
 intrabar_watch_5m.bat
 label_intrabar.bat
 train_intrabar.bat
+import_railway_logs.bat
+paper_trade_60m.bat
+download_year_binance_5m.bat
+train_candle_direction_5m_1y.bat
+walk_forward_candle_direction_5m_1y.bat
 ```
 
 ## Як читати результат
@@ -176,6 +181,23 @@ train_intrabar.bat
 
 Для `train_intrabar.bat` потрібно хоча б 100 labeled snapshots, тому збір треба повторити
 на багатьох свічках.
+
+Якщо snapshots зібрані в Railway logs, скачайте logs як JSON або Plain text, покладіть
+файл у корінь проєкту як `railway_logs.json`, потім:
+
+```bat
+import_railway_logs.bat
+label_intrabar.bat
+train_intrabar.bat
+```
+
+Для 60-хвилинного paper-trading тесту з віртуальним балансом `100`:
+
+```bat
+paper_trade_60m.bat
+```
+
+Результат пишеться в `paper_trades.csv`. Це не реальна торгівля й не відправляє ордери.
 
 Для запуску collector у Railway дивіться [RAILWAY.md](RAILWAY.md).
 
